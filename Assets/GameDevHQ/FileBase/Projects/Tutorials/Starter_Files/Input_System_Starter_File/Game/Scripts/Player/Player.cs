@@ -22,6 +22,9 @@ namespace Game.Scripts.Player
         [SerializeField]
         private GameObject _model;
 
+        //New Input System variables
+        [SerializeField] private PlayerManager _manager;
+
 
         private void OnEnable()
         {
@@ -58,8 +61,12 @@ namespace Game.Scripts.Player
         private void CalcutateMovement()
         {
             _playerGrounded = _controller.isGrounded;
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
+            //float h = Input.GetAxisRaw("Horizontal");
+            //float v = Input.GetAxisRaw("Vertical");
+            
+            Vector2 _directionInput = _manager.GetDirection();
+            float h = _directionInput.x;
+            float v = _directionInput.y;
 
             transform.Rotate(transform.up, h);
 

@@ -66,6 +66,8 @@ namespace Game.Scripts.LiveObjects
         public static event Action<int> onHoldStarted;
         public static event Action<int> onHoldEnded;
 
+        
+        
         private void OnEnable()
         {
             InteractableZone.onZoneInteractionComplete += SetMarker;

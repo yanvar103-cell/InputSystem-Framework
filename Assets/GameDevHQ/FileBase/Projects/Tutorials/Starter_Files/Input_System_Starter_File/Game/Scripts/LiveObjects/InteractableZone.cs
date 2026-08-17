@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Scripts.UI;
+using UnityEngine.InputSystem; //new Input System library
 
 
 namespace Game.Scripts.LiveObjects
@@ -61,17 +62,88 @@ namespace Game.Scripts.LiveObjects
             }
         }
 
-
+        //custom game logic events
         public static event Action<InteractableZone> onZoneInteractionComplete;
         public static event Action<int> onHoldStarted;
         public static event Action<int> onHoldEnded;
 
+        private GameInputs _input;//
+
+        private void Awake()//initializes before OnEnable
+        {
+            InitializeInput();
+        }
+        void InitializeInput()//initializing input reference with overriding bindings
+        {
+            _input = new GameInputs();//reference(each InteractableZone GETS ITS OWN separate copy)
+            // override the binding to use THIS zone's specific key(every object has it's own key binding defined in _zoneKeyInput)
+            _input.Player.Interact.ApplyBindingOverride($"<Keyboard>/{_zoneKeyInput.ToString().ToLower()}");
+            _input.Player.HoldInteract.ApplyBindingOverride($"<Keyboard>/{_zoneKeyInput.ToString().ToLower()}");
+        }
         
-        
-        private void OnEnable()
+        private void OnEnable()//Unity calls OnEnable() automatically when the GameObject becomes active in the scene after Awake()
         {
             InteractableZone.onZoneInteractionComplete += SetMarker;
 
+            _input.Player.Interact.Enable();//starts listening for that key at all
+            _input.Player.Interact.performed += Interact_performed;//subscribe a method to run WHEN it's triggered
+            _input.Player.HoldInteract.Enable();//starts listening for that key at all
+            _input.Player.HoldInteract.started += HoldInteract_started;//for the action began (key just pressed down)
+            _input.Player.HoldInteract.canceled += HoldInteract_canceled;//for the action stopped (key released)
+        }
+
+        private void OnDisable()//mirror image of OnEnable, cleanup. Unity calls OnDisable() automatically when the GameObject becomes inactive(SetActive(false))
+        {
+            InteractableZone.onZoneInteractionComplete -= SetMarker;
+            
+            _input.Player.Interact.performed -= Interact_performed;// unsubscribe
+            _input.Player.Interact.Disable();// stop listening
+            _input.Player.HoldInteract.started -= HoldInteract_started;//
+            _input.Player.HoldInteract.canceled -= HoldInteract_canceled;//
+            _input.Player.HoldInteract.Disable();// stop listening
+        }
+
+        private void HoldInteract_started(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
+        {
+            if (!_inZone || _keyState != KeyState.PressHold || _inHoldState) return;
+            _inHoldState = true;
+            switch (_zoneType)
+            {
+                case ZoneType.HoldAction:
+                    PerformHoldAction();
+                    break;
+            }
+        }
+
+        private void HoldInteract_canceled(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
+        {
+            if(_keyState != KeyState.PressHold) return;
+            _inHoldState = false;
+            onHoldEnded?.Invoke(_zoneID);
+        }
+
+        private void Interact_performed(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
+        {
+            if (!_inZone || _keyState == KeyState.PressHold) return;
+            switch(_zoneType)
+            {
+                case ZoneType.Collectable:
+                    if (_itemsCollected == false)
+                    {
+                        CollectItems();
+                        _itemsCollected = true;
+                        UIManager.Instance.DisplayInteractableZoneMessage(false);
+                    }
+                    break;
+                case ZoneType.Action:
+                    if (_actionPerformed == false)
+                    {
+                        PerformAction();
+                        _actionPerformed = true;
+                        UIManager.Instance.DisplayInteractableZoneMessage(false);
+                    }
+                    break;
+            }
         }
 
         private void OnTriggerEnter(Collider other)
@@ -122,7 +194,7 @@ namespace Game.Scripts.LiveObjects
             }
         }
 
-        private void Update()
+        /*private void Update()
         {
             if (_inZone == true)
             {
@@ -170,10 +242,8 @@ namespace Game.Scripts.LiveObjects
                     _inHoldState = false;
                     onHoldEnded?.Invoke(_zoneID);
                 }
-
-               
             }
-        }
+        }*///deactivated update polling, using event subscription
        
         private void CollectItems()
         {
@@ -250,12 +320,6 @@ namespace Game.Scripts.LiveObjects
                 UIManager.Instance.DisplayInteractableZoneMessage(false);
             }
         }
-
-        private void OnDisable()
-        {
-            InteractableZone.onZoneInteractionComplete -= SetMarker;
-        }       
-        
     }
 }
 

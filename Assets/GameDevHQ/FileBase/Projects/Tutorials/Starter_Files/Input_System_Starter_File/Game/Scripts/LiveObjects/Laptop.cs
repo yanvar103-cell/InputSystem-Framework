@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Cinemachine;
+using UnityEngine.InputSystem;//new Input System library
 
 namespace Game.Scripts.LiveObjects
 {
@@ -23,13 +24,61 @@ namespace Game.Scripts.LiveObjects
         public static event Action onHackComplete;
         public static event Action onHackEnded;
 
+        private GameInputs _input;//defining an InputAsset
+
+        private void Awake()
+        {
+            _input = new GameInputs();
+            _input.Player.Interact.performed += Interact_performed;// for switching cameras (E)
+            _input.Player.Exit.performed += Exit_performed;// for Escape
+        }
+
+        private void Exit_performed(InputAction.CallbackContext context)
+        {
+            if (!_hacked) return;
+
+            _hacked = false;
+            onHackEnded?.Invoke();
+            ResetCameras();
+        }
+
+        private void Interact_performed(InputAction.CallbackContext context)
+        {
+            if (!_hacked) return;
+
+            var previous = _activeCamera;
+            _activeCamera++;
+
+
+            if (_activeCamera >= _cameras.Length)
+                _activeCamera = 0;
+
+
+            _cameras[_activeCamera].Priority = 11;
+            _cameras[previous].Priority = 9;
+        }
+
         private void OnEnable()
         {
             InteractableZone.onHoldStarted += InteractableZone_onHoldStarted;
             InteractableZone.onHoldEnded += InteractableZone_onHoldEnded;
+
+            _input.Player.Interact.Enable();
+            _input.Player.Exit.Enable();
         }
 
-        private void Update()
+        private void OnDisable()
+        {
+            InteractableZone.onHoldStarted -= InteractableZone_onHoldStarted;
+            InteractableZone.onHoldEnded -= InteractableZone_onHoldEnded;
+
+            _input.Player.Interact.performed -= Interact_performed;// for switching cameras (E)
+            _input.Player.Exit.performed -= Exit_performed;// for Escape
+            _input.Player.Interact.Disable();
+            _input.Player.Exit.Disable();
+        }
+
+        /*private void Update()
         {
             if (_hacked == true)
             {
@@ -54,7 +103,7 @@ namespace Game.Scripts.LiveObjects
                     ResetCameras();
                 }
             }
-        }
+        }*/
 
         void ResetCameras()
         {
@@ -74,7 +123,7 @@ namespace Game.Scripts.LiveObjects
             }
         }
 
-        private void InteractableZone_onHoldEnded(int zoneID)
+        private void InteractableZone_onHoldEnded(int zoneID, float _duration)
         {
             if (zoneID == 3) //Hacking terminal
             {
@@ -106,12 +155,6 @@ namespace Game.Scripts.LiveObjects
 
             //enable Vcam1
             _cameras[0].Priority = 11;
-        }
-        
-        private void OnDisable()
-        {
-            InteractableZone.onHoldStarted -= InteractableZone_onHoldStarted;
-            InteractableZone.onHoldEnded -= InteractableZone_onHoldEnded;
         }
     }
 

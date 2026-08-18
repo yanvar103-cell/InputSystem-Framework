@@ -65,8 +65,10 @@ namespace Game.Scripts.LiveObjects
         //custom game logic events
         public static event Action<InteractableZone> onZoneInteractionComplete;
         public static event Action<int> onHoldStarted;
-        public static event Action<int> onHoldEnded;
+        public static event Action<int, float> onHoldEnded;//added float duration to implement hold tap input in crate destructing
 
+        private float _holdStartTime;//to calculate hold duration in HoldInteract_started/canceled()
+        
         private GameInputs _input;//defining an InputAsset
 
         private void Awake()//initializes before OnEnable
@@ -79,6 +81,7 @@ namespace Game.Scripts.LiveObjects
             // override the binding to use THIS zone's specific key(every object has it's own key binding defined in _zoneKeyInput)
             _input.Player.Interact.ApplyBindingOverride($"<Keyboard>/{_zoneKeyInput.ToString().ToLower()}");
             _input.Player.HoldInteract.ApplyBindingOverride($"<Keyboard>/{_zoneKeyInput.ToString().ToLower()}");
+            //Debug.Log($"Zone {_zoneID} bound to key: {_zoneKeyInput.ToString().ToLower()}");
         }
         
         private void OnEnable()//Unity calls OnEnable() automatically when the GameObject becomes active in the scene after Awake()
@@ -105,8 +108,11 @@ namespace Game.Scripts.LiveObjects
 
         private void HoldInteract_started(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
         {
+            //Debug.Log($"HoldInteract_started fired! _inZone={_inZone}, _keyState={_keyState}, _inHoldState={_inHoldState}");
             if (!_inZone || _keyState != KeyState.PressHold || _inHoldState) return;
             _inHoldState = true;
+            _holdStartTime = Time.time;//record when hold began
+
             switch (_zoneType)
             {
                 case ZoneType.HoldAction:
@@ -117,9 +123,13 @@ namespace Game.Scripts.LiveObjects
 
         private void HoldInteract_canceled(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
         {
-            if(_keyState != KeyState.PressHold) return;
+            //Debug.Log($"HoldInteract_canceled fired for zone {_zoneID}! _keyState={_keyState}");
+            if (!_inZone || _keyState != KeyState.PressHold) return; //check _inZone to prevent PressHold conflict between zone 3 and 6
             _inHoldState = false;
-            onHoldEnded?.Invoke(_zoneID);
+
+            float _duration = Time.time - _holdStartTime;//returns how long key holded
+            //Debug.Log($"Duration: {_duration}, invoking onHoldEnded for zone {_zoneID}");
+            onHoldEnded?.Invoke(_zoneID, _duration); //passes zoneID and duration
         }
 
         private void Interact_performed(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
@@ -150,6 +160,7 @@ namespace Game.Scripts.LiveObjects
         {
             if (other.CompareTag("Player") && _currentZoneID > _requiredID)
             {
+                Debug.Log("Entered zone, _inZone should become true. CurrentZoneID: " + _currentZoneID + " RequiredID: " + _requiredID);
                 switch (_zoneType)
                 {
                     case ZoneType.Collectable:

@@ -32,4 +32,31 @@ public class PlayerManager : MonoBehaviour
         Vector2 _direction = _input.Player.Movement.ReadValue<Vector2>();
         return _direction;
     }
+
+    private void OnEnable()
+    {
+        //subscribing Enable/DisablePlayerInput() to existing events as this class has own GameInputs reference
+        Drone.OnEnterFlightMode += DisablePlayerInput;
+        Drone.onExitFlightmode += EnablePlayerInput;
+        Forklift.onDriveModeEntered += DisablePlayerInput;
+        Forklift.onDriveModeExited += EnablePlayerInput;
+    }
+
+    private void OnDisable()
+    {
+        Drone.OnEnterFlightMode -= DisablePlayerInput;
+        Drone.onExitFlightmode -= EnablePlayerInput;
+        Forklift.onDriveModeEntered -= DisablePlayerInput;
+        Forklift.onDriveModeExited -= EnablePlayerInput;
+    }
+
+    private void DisablePlayerInput()
+    {
+        _input.Player.Disable();
+    }
+
+    private void EnablePlayerInput()
+    {
+        _input.Player.Enable();
+    }
 }

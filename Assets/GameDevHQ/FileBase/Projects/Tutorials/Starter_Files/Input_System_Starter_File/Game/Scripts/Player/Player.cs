@@ -24,6 +24,7 @@ namespace Game.Scripts.Player
 
         //New Input System variables
         [SerializeField] private PlayerManager _manager;
+        private Vector2 _directionInput;
 
 
         private void OnEnable()
@@ -54,17 +55,19 @@ namespace Game.Scripts.Player
         private void Update()
         {
             if (_canMove == true)
-                CalcutateMovement();
-
+            {
+                _directionInput = _manager.GetDirection();
+                CalcutateMovement(_directionInput);
+            }
         }
 
-        private void CalcutateMovement()
+        private void CalcutateMovement(Vector2 _direction)
         {
             _playerGrounded = _controller.isGrounded;
             //float h = Input.GetAxisRaw("Horizontal");
             //float v = Input.GetAxisRaw("Vertical");
             
-            Vector2 _directionInput = _manager.GetDirection();
+            
             float h = _directionInput.x;
             float v = _directionInput.y;
 

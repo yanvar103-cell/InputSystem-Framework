@@ -67,7 +67,7 @@ namespace Game.Scripts.LiveObjects
         public static event Action<int> onHoldStarted;
         public static event Action<int> onHoldEnded;
 
-        private GameInputs _input;//
+        private GameInputs _input;//defining an InputAsset
 
         private void Awake()//initializes before OnEnable
         {

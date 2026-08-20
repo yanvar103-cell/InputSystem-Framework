@@ -108,7 +108,6 @@ namespace Game.Scripts.LiveObjects
 
         private void HoldInteract_started(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
         {
-            //Debug.Log($"HoldInteract_started fired! _inZone={_inZone}, _keyState={_keyState}, _inHoldState={_inHoldState}");
             if (!_inZone || _keyState != KeyState.PressHold || _inHoldState) return;
             _inHoldState = true;
             _holdStartTime = Time.time;//record when hold began
@@ -123,12 +122,10 @@ namespace Game.Scripts.LiveObjects
 
         private void HoldInteract_canceled(InputAction.CallbackContext context)//Keyboard Input System event(bridge method)
         {
-            //Debug.Log($"HoldInteract_canceled fired for zone {_zoneID}! _keyState={_keyState}");
             if (!_inZone || _keyState != KeyState.PressHold) return; //check _inZone to prevent PressHold conflict between zone 3 and 6
             _inHoldState = false;
 
             float _duration = Time.time - _holdStartTime;//returns how long key holded
-            //Debug.Log($"Duration: {_duration}, invoking onHoldEnded for zone {_zoneID}");
             onHoldEnded?.Invoke(_zoneID, _duration); //passes zoneID and duration
         }
 
@@ -160,7 +157,6 @@ namespace Game.Scripts.LiveObjects
         {
             if (other.CompareTag("Player") && _currentZoneID > _requiredID)
             {
-                Debug.Log("Entered zone, _inZone should become true. CurrentZoneID: " + _currentZoneID + " RequiredID: " + _requiredID);
                 switch (_zoneType)
                 {
                     case ZoneType.Collectable:
